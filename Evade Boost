@@ -1,39 +1,145 @@
-
-local LocalPlayer = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+ 
+local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 local Humanoid = Character:WaitForChild("Humanoid")
-
+ 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local TouchGui = PlayerGui:WaitForChild("TouchGui")
 local TouchControlFrame = TouchGui:WaitForChild("TouchControlFrame")
 local JumpButton = TouchControlFrame:WaitForChild("JumpButton")
+ 
 local con
 
+local PlayerUI = PlayerGui:FindFirstChild("Boost") or Instance.new("ScreenGui")
+PlayerUI.Name = "Boost"
+PlayerUI.Parent = PlayerGui
+
+local Container = PlayerUI:FindFirstChild("ContainerButtons") or Instance.new("Frame")
+Container.Name = "ContainerButtons"
+Container.Size = UDim2.new(0.30, 0, 0.65, 0)
+Container.Position = UDim2.new(0.5, 0, 0.5, 0)
+Container.BackgroundTransparency = 0.62
+Container.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Container.AnchorPoint = Vector2.new(0.5,0.5)
+Container.Parent = PlayerUI
+
+local Text1 = Container:FindFirstChild("TextBox1") or Instance.new("TextBox")
+Text1.Name = "TextBox1"
+Text1.AnchorPoint = Vector2.new(0.5,0.5)
+Text1.Size = UDim2.new(0.8, 0, 0.119, 0)
+Text1.Position = UDim2.new(0.5, 0, 0.4, 0)
+Text1.BackgroundTransparency = 1
+Text1.TextColor3 = Color3.fromRGB(255, 255, 255)
+Text1.Parent = Container
+ 
+local Text2 = Container:FindFirstChild("TextBox2") or Instance.new("TextBox")
+Text2.Name = "TextBox1"
+Text2.AnchorPoint = Vector2.new(0.5,0.5)
+Text2.Size = UDim2.new(0.8, 0, 0.119, 0)
+Text2.Position = UDim2.new(0.5, 0, 0.6, 0)
+Text2.BackgroundTransparency = 1
+Text2.TextColor3 = Color3.fromRGB(255, 255, 255)
+Text2.Parent = Container
+
+local Text3 = PlayerUI:FindFirstChild("Close") or Instance.new("TextButton")
+Text3.Name = "Close"
+Text3.AnchorPoint = Vector2.new(0.5,0.5)
+Text3.Size = UDim2.new(0.10, 0, 0.10, 0)
+Text3.Position = UDim2.new(0.2, 0, 0.1, 0)
+Text3.BackgroundTransparency = 0.61
+Text3.Text = "Close"
+Text3.TextScaled = true
+Text3.TextColor3 = Color3.fromRGB(255, 255, 255)
+Text3.Parent = PlayerUI
+ 
+local Stroke1 = Container:FindFirstChild("UIStroke") or Instance.new("UIStroke")
+Stroke1.Color = Color3.fromRGB(255, 255, 255)
+Stroke1.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+Stroke1.Thickness = 2
+Stroke1.Parent = Container
+ 
+local Stroke2 = Text1:FindFirstChild("UIStroke") or Instance.new("UIStroke")
+Stroke2.Color = Color3.fromRGB(255, 255, 255)
+Stroke2.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+Stroke2.Thickness = 2
+Stroke2.Parent = Text1
+
+local Stroke3 = Text2:FindFirstChild("UIStroke") or Instance.new("UIStroke")
+Stroke3.Color = Color3.fromRGB(255, 255, 255)
+Stroke3.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+Stroke3.Thickness = 2
+Stroke3.Parent = Text2
+ 
+local Stroke4 = Text3:FindFirstChild("UIStroke") or Instance.new("UIStroke")
+Stroke4.Color = Color3.fromRGB(255, 255, 255)
+Stroke4.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+Stroke4.Thickness = 2
+Stroke4.Parent = Text3
+
+local move = Text3:FindFirstChild("Drag") or Instance.new("UIDragDetector")
+move.Name = "Drag"
+move.Parent = Text3
+
+Text3.MouseEnter:Connect(function()
+    Container.Visible = not Container.Visible
+end)
+
+local value2 = 36
+Text1.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local NewSpeed = tonumber(Text1.Text)
+        
+        if NewSpeed and NewSpeed > 0 then
+            value2 = NewSpeed
+        else
+            value2 = 36
+        end  
+    end
+end)
+local value = 75
+ 
+Text2.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local NewForceSpeed = tonumber(Text2.Text)
+        
+        if NewForceSpeed and NewForceSpeed > 0 then
+            value = NewForceSpeed
+        else
+            value = 75
+        end  
+    end
+end)
+ 
 for _, n in ipairs(HumanoidRootPart:GetChildren()) do
-    if n and n:IsA("LinearVelocity") then
+    if n and n:IsA("LinearVelocity") and n.Name ~= "Force" then
         n:Destroy()
     end
 end
-
--- Crear Attachment y LinearVelocity
-local Attachment = HumanoidRootPart:FindFirstChild("Attachment") or Instance.new("Attachment")
-Attachment.Parent = HumanoidRootPart
-
-local LinearVelocity = Instance.new("LinearVelocity")
-LinearVelocity.Attachment0 = Attachment
-LinearVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
-LinearVelocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
-LinearVelocity.PrimaryTangentAxis = Vector3.new(1, 0, 0)
-LinearVelocity.SecondaryTangentAxis = Vector3.new(0, 0, 1)
-LinearVelocity.MaxForce = 0 -- empieza desactivado
-LinearVelocity.Parent = HumanoidRootPart
 
 local canjump = 10
 local isInAir = false
 
 local function updateMovement()
     local state = Humanoid:GetState()
+    Humanoid.WalkSpeed = value2
+    
+    local Attachment = HumanoidRootPart:FindFirstChild("AttachmentForce") or Instance.new("Attachment")
+    Attachment.Name = "AttachmentForce"
+    Attachment.Parent = HumanoidRootPart
+    
+    local LinearVelocity = HumanoidRootPart:FindFirstChild("Force") or Instance.new("LinearVelocity")
+    LinearVelocity.Attachment0 = Attachment
+    LinearVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
+    LinearVelocity.Name = "Force"
+    LinearVelocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
+    LinearVelocity.PrimaryTangentAxis = Vector3.new(1, 0, 0)
+    LinearVelocity.SecondaryTangentAxis = Vector3.new(0, 0, 1)
+    LinearVelocity.Parent = HumanoidRootPart
     
     if state ~= Enum.HumanoidStateType.Freefall then
         -- En el suelo: desactivar LinearVelocity
@@ -51,32 +157,38 @@ local function updateMovement()
     
     -- Velocidad horizontal basada en la dirección de movimiento
     local moveDir = Humanoid.MoveDirection
-    local speed = 75 -- velocidad horizontal deseada (cámbiala a tu gusto)
+    speed = value
     
     LinearVelocity.PlaneVelocity = Vector2.new(moveDir.X * speed, moveDir.Z * speed)
 end
-Humanoid.WalkSpeed  = 36
- 
+
 local function conectar()
     if con and con.Connected then
         con:Disconnect()
     end
-    con = game.RunService.RenderStepped:Connect(function()
+    con = RunService.RenderStepped:Connect(function()
         updateMovement()
         JumpButton.Visible = true
         TouchControlFrame.Visible = true
         
-        for _, sky in ipairs(game.Lighting:GetChildren()) do
+        for _, sky in ipairs(Lighting:GetChildren()) do
             if sky and sky:IsA("Sky") then
                 sky:Destroy()
             end
         end
         
-        for _, part in ipairs(game.workspace:GetDescendants()) do
+        for _, part in ipairs(Workspace:GetDescendants()) do
             if part and part:IsA("BasePart") then
                 part.Material = Enum.Material.SmoothPlastic
             end
         end
+        
+        for _, n2 in ipairs(HumanoidRootPart:GetChildren()) do
+            if n2 and n2:IsA("LinearVelocity") and n2.Name ~= "Force" then
+                n2:Destroy()
+            end
+        end
+        
         canjump = math.clamp(canjump - 1, 0, 10)
         
         -- Mobile fixer
