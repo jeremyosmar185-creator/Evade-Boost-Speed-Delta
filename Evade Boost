@@ -1,0 +1,97 @@
+
+local LocalPlayer = game.Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local Humanoid = Character:WaitForChild("Humanoid")
+
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local TouchGui = PlayerGui:WaitForChild("TouchGui")
+local TouchControlFrame = TouchGui:WaitForChild("TouchControlFrame")
+local JumpButton = TouchControlFrame:WaitForChild("JumpButton")
+local con
+
+for _, n in ipairs(HumanoidRootPart:GetChildren()) do
+    if n and n:IsA("LinearVelocity") then
+        n:Destroy()
+    end
+end
+
+-- Crear Attachment y LinearVelocity
+local Attachment = HumanoidRootPart:FindFirstChild("Attachment") or Instance.new("Attachment")
+Attachment.Parent = HumanoidRootPart
+
+local LinearVelocity = Instance.new("LinearVelocity")
+LinearVelocity.Attachment0 = Attachment
+LinearVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
+LinearVelocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
+LinearVelocity.PrimaryTangentAxis = Vector3.new(1, 0, 0)
+LinearVelocity.SecondaryTangentAxis = Vector3.new(0, 0, 1)
+LinearVelocity.MaxForce = 0 -- empieza desactivado
+LinearVelocity.Parent = HumanoidRootPart
+
+local canjump = 10
+local isInAir = false
+
+local function updateMovement()
+    local state = Humanoid:GetState()
+    
+    if state ~= Enum.HumanoidStateType.Freefall then
+        -- En el suelo: desactivar LinearVelocity
+        LinearVelocity.MaxForce = 0
+        isInAir = false
+        return
+    end
+    
+    -- En el aire: activar control horizontal
+    LinearVelocity.MaxForce = 80000 -- ajusta la fuerza si quieres
+    
+    if not isInAir then
+        isInAir = true
+    end
+    
+    -- Velocidad horizontal basada en la dirección de movimiento
+    local moveDir = Humanoid.MoveDirection
+    local speed = 75 -- velocidad horizontal deseada (cámbiala a tu gusto)
+    
+    LinearVelocity.PlaneVelocity = Vector2.new(moveDir.X * speed, moveDir.Z * speed)
+end
+Humanoid.WalkSpeed  = 36
+ 
+local function conectar()
+    if con and con.Connected then
+        con:Disconnect()
+    end
+    con = game.RunService.RenderStepped:Connect(function()
+        updateMovement()
+        JumpButton.Visible = true
+        TouchControlFrame.Visible = true
+        
+        for _, sky in ipairs(game.Lighting:GetChildren()) do
+            if sky and sky:IsA("Sky") then
+                sky:Destroy()
+            end
+        end
+        
+        for _, part in ipairs(game.workspace:GetDescendants()) do
+            if part and part:IsA("BasePart") then
+                part.Material = Enum.Material.SmoothPlastic
+            end
+        end
+        canjump = math.clamp(canjump - 1, 0, 10)
+        
+        -- Mobile fixer
+        if canjump == 10 then
+            Humanoid.JumpPower = 40
+        end
+    end)
+end
+conectar()
+
+-- Limpiar al morir
+Humanoid.Died:Connect(function()
+    if con and con.Connected then
+        con:Disconnect()
+    end
+    LinearVelocity:Destroy()
+    Attachment:Destroy()
+end)
